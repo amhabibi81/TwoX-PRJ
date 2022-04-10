@@ -13,4 +13,9 @@ public class Girafe extends Mammal implements Prey{
         super.show();
         System.out.println(", \""+special_adjective+"\"");
     }
+
+    @Override
+    public String getName() {
+        return getName_of_animal();
+    }
 }

@@ -13,4 +13,9 @@ public class Parrot extends Bird implements Prey{
         super.show();
         System.out.println(", \""+special_adjective+"\"");
     }
+
+    @Override
+    public String getName() {
+        return getName_of_animal();
+    }
 }
