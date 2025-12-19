@@ -1,0 +1,24 @@
+{
+  "name": "ai-team-backend",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "cors": "^2.8.5",
+    "bcrypt": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.4.5",
+    "better-sqlite3": "^11.0.0",
+    "node-cron": "^3.0.3",
+    "joi": "^17.11.0",
+    "express-rate-limit": "^7.1.5",
+    "validator": "^13.11.0",
+    "pino": "^8.19.0"
+  },
+  "devDependencies": {
+    "pino-pretty": "^10.3.1"
+  }
+}
