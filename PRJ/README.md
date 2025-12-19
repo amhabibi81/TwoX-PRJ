@@ -19,7 +19,7 @@ A full-stack web application for monthly team performance evaluation. Users are 
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/team-evaluation-system.git
+   git clone https://github.com/amhabibi81/TwoX-PRJ.git
 cd team-evaluation-system
 
 # Backend setup
