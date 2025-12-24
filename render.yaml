@@ -21,7 +21,7 @@ services:
       - key: CORS_ORIGIN
         sync: false
       - key: ADMIN_EMAILS
-        sync: false
+        value: amhabibi81@gmail.com
       - key: EVAL_WEIGHT_SELF
         value: 0.20
       - key: EVAL_WEIGHT_PEER

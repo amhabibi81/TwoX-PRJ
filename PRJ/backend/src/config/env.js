@@ -45,10 +45,16 @@ const adminEmails = process.env.ADMIN_EMAILS
   ? process.env.ADMIN_EMAILS.split(',').map(email => email.trim()).filter(email => email.length > 0)
   : [];
 
+// Parse optional ADMIN_DEFAULT_PASSWORD (defaults to 'admin123' if not set)
+const adminDefaultPassword = process.env.ADMIN_DEFAULT_PASSWORD
+  ? process.env.ADMIN_DEFAULT_PASSWORD.trim()
+  : 'admin123';
+
 export const config = {
   jwtSecret: process.env.JWT_SECRET ? process.env.JWT_SECRET.trim() : '',
   port,
   databasePath,
   adminEmails,
+  adminDefaultPassword,
 };
 
