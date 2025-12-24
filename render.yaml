@@ -16,7 +16,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_PATH
-        value: /opt/render/project/src/PRJ/backend/data/database.sqlite
+        value: ./data/database.sqlite
       - key: CORS_ORIGIN
         sync: false
       - key: ADMIN_EMAILS
@@ -29,16 +29,11 @@ services:
         value: 0.30
       - key: LOG_LEVEL
         value: info
-    disk:
-      name: database-disk
-      mountPath: /opt/render/project/src/PRJ/backend/data
-      sizeGB: 1
 
   # Frontend Static Site
   - type: web
     name: team-eval-frontend
     env: static
-    region: oregon
     plan: free
     buildCommand: cd PRJ/frontend && npm install && npm run build
     staticPublishPath: PRJ/frontend/dist
