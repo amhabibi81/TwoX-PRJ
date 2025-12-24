@@ -34,7 +34,6 @@ services:
   - type: web
     name: team-eval-frontend
     env: static
-    plan: free
     buildCommand: cd PRJ/frontend && npm install && npm run build
     staticPublishPath: PRJ/frontend/dist
     envVars:
