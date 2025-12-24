@@ -102,8 +102,8 @@ export default function Dashboard() {
       peerQuestionTeammatePairs.add(`${a.question_id}_${a.evaluated_user_id}`);
     }
   });
-  const team = allTeams.find(t => t.teamId === userTeamId);
-  const teammateCount = team ? (team.members?.filter(m => m.id !== user?.id).length || 0) : 0;
+  const userTeam = allTeams.find(t => t.teamId === userTeamId);
+  const teammateCount = userTeam ? (userTeam.members?.filter(m => m.id !== user?.id).length || 0) : 0;
   const expectedPeerAnswers = totalQuestions * teammateCount;
   const peerStatus = {
     answered: peerQuestionTeammatePairs.size,
