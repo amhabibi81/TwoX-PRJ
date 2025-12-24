@@ -30,12 +30,12 @@ export const signup = async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user with sanitized inputs
+    // Create user with sanitized inputs (default role is 'member')
     const user = userRepository.createUser(sanitizedUsername, sanitizedEmail, passwordHash);
 
-    // Generate JWT token
+    // Generate JWT token with role
     const token = jwt.sign(
-      { id: user.id, username: user.username, email: user.email },
+      { id: user.id, username: user.username, email: user.email, role: user.role || 'member' },
       config.jwtSecret,
       { expiresIn: '7d' }
     );
@@ -46,6 +46,7 @@ export const signup = async (req, res) => {
       userId: user.id,
       username: user.username,
       email: sanitizedEmail,
+      role: user.role,
       ip: req.ip
     }, 'User signup successful');
 
@@ -55,7 +56,8 @@ export const signup = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        role: user.role || 'member'
       }
     });
   } catch (error) {
@@ -120,9 +122,12 @@ export const login = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
+    // Get user role (default to 'member' if not set)
+    const userRole = user.role || 'member';
+
+    // Generate JWT token with role
     const token = jwt.sign(
-      { id: user.id, username: user.username, email: user.email },
+      { id: user.id, username: user.username, email: user.email, role: userRole },
       config.jwtSecret,
       { expiresIn: '7d' }
     );
@@ -132,6 +137,7 @@ export const login = async (req, res) => {
       event: 'user.login.success',
       userId: user.id,
       email: sanitizedEmail,
+      role: userRole,
       ip: req.ip
     }, 'User login successful');
 
@@ -140,7 +146,8 @@ export const login = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
+        role: userRole
       }
     });
   } catch (error) {

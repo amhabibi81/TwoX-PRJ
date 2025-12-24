@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import logger from '../utils/logger.js';
+import { migrateAdminRoles } from './migrateRoleData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,6 +96,23 @@ export function migrate() {
   
   for (const migration of pendingMigrations) {
     runMigration(migration);
+    
+    // After migration 009_add_user_roles.sql, run role data migration
+    if (migration === '009_add_user_roles.sql') {
+      try {
+        logger.info({
+          event: 'role.migration.triggered'
+        }, 'Migration 009 applied, running role data migration...');
+        migrateAdminRoles();
+      } catch (error) {
+        logger.error({
+          event: 'role.migration.failure',
+          error: error.message,
+          stack: error.stack
+        }, 'Role data migration failed after migration 009');
+        // Don't throw - migration SQL succeeded, role migration can be retried
+      }
+    }
   }
   
   logger.info({

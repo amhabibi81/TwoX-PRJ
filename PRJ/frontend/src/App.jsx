@@ -6,8 +6,13 @@ import Login from '../pages/Login';
 import Signup from '../pages/Signup';
 import Dashboard from '../pages/Dashboard';
 import Evaluation from '../pages/Evaluation';
+import SelfEvaluation from '../pages/SelfEvaluation';
+import PeerEvaluation from '../pages/PeerEvaluation';
+import ManagerEvaluation from '../pages/ManagerEvaluation';
 import Results from '../pages/Results';
+import AdminDashboard from '../pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import RoleProtectedRoute from './components/RoleProtectedRoute';
 import ErrorToast from './components/ErrorToast';
 import LoadingOverlay from './components/LoadingOverlay';
 
@@ -49,10 +54,46 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/evaluation/self"
+        element={
+          <ProtectedRoute>
+            <SelfEvaluation />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/evaluation/peer"
+        element={
+          <ProtectedRoute>
+            <PeerEvaluation />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/evaluation/manager"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={['admin', 'manager']}>
+              <ManagerEvaluation />
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/results"
         element={
           <ProtectedRoute>
             <Results />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute requiredRole="admin">
+              <AdminDashboard />
+            </RoleProtectedRoute>
           </ProtectedRoute>
         }
       />

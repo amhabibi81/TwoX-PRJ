@@ -143,12 +143,78 @@ export const teamGenerationSchema = Joi.object({
   year: yearSchema
 });
 
+// Source Type: Enum validation for 'self', 'peer', 'manager'
+export const sourceTypeSchema = Joi.string()
+  .valid('self', 'peer', 'manager')
+  .optional()
+  .messages({
+    'any.only': 'Source type must be one of: self, peer, manager'
+  });
+
+// Evaluated User ID: Positive integer (optional for backward compatibility)
+export const evaluatedUserIdSchema = Joi.number()
+  .integer()
+  .positive()
+  .optional()
+  .messages({
+    'number.base': 'Evaluated user ID must be a number',
+    'number.integer': 'Evaluated user ID must be an integer',
+    'number.positive': 'Evaluated user ID must be a positive number'
+  });
+
 /**
- * Answer submission validation schema
+ * Answer submission validation schema (updated for 360-degree evaluations)
+ * Backward compatible: evaluatedUserId and sourceType are optional (defaults to peer)
  */
 export const answerSubmissionSchema = Joi.object({
   questionId: questionIdSchema,
+  score: scoreSchema,
+  evaluatedUserId: evaluatedUserIdSchema,
+  sourceType: sourceTypeSchema
+});
+
+/**
+ * Self-evaluation submission schema
+ */
+export const selfEvaluationSchema = Joi.object({
+  questionId: questionIdSchema,
   score: scoreSchema
+});
+
+/**
+ * Peer evaluation submission schema
+ */
+export const peerEvaluationSchema = Joi.object({
+  questionId: questionIdSchema,
+  score: scoreSchema,
+  evaluatedUserId: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Evaluated user ID must be a number',
+      'number.integer': 'Evaluated user ID must be an integer',
+      'number.positive': 'Evaluated user ID must be a positive number',
+      'any.required': 'Evaluated user ID is required for peer evaluations'
+    })
+});
+
+/**
+ * Manager evaluation submission schema
+ */
+export const managerEvaluationSchema = Joi.object({
+  questionId: questionIdSchema,
+  score: scoreSchema,
+  evaluatedUserId: Joi.number()
+    .integer()
+    .positive()
+    .required()
+    .messages({
+      'number.base': 'Evaluated user ID must be a number',
+      'number.integer': 'Evaluated user ID must be an integer',
+      'number.positive': 'Evaluated user ID must be a positive number',
+      'any.required': 'Evaluated user ID is required for manager evaluations'
+    })
 });
 
 /**
@@ -159,3 +225,81 @@ export const monthYearQuerySchema = Joi.object({
   month: optionalMonthSchema,
   year: optionalYearSchema
 }).and('month', 'year'); // If month is provided, year must also be provided and vice versa
+
+/**
+ * Team name validation schema
+ */
+const teamNameSchema = Joi.string()
+  .min(1)
+  .max(100)
+  .required()
+  .messages({
+    'string.min': 'Team name must be at least 1 character long',
+    'string.max': 'Team name must not exceed 100 characters',
+    'any.required': 'Team name is required'
+  });
+
+/**
+ * User ID validation schema
+ */
+const userIdSchema = Joi.number()
+  .integer()
+  .positive()
+  .required()
+  .messages({
+    'number.base': 'User ID must be a number',
+    'number.integer': 'User ID must be an integer',
+    'number.positive': 'User ID must be a positive number',
+    'any.required': 'User ID is required'
+  });
+
+// Hour: Integer 0-23
+const hourSchema = Joi.number()
+  .integer()
+  .min(0)
+  .max(23)
+  .optional()
+  .messages({
+    'number.base': 'Hour must be a number',
+    'number.integer': 'Hour must be an integer',
+    'number.min': 'Hour must be between 0 and 23',
+    'number.max': 'Hour must be between 0 and 23'
+  });
+
+// Day: Integer 1-31
+const daySchema = Joi.number()
+  .integer()
+  .min(1)
+  .max(31)
+  .optional()
+  .messages({
+    'number.base': 'Day must be a number',
+    'number.integer': 'Day must be an integer',
+    'number.min': 'Day must be between 1 and 31',
+    'number.max': 'Day must be between 1 and 31'
+  });
+
+/**
+ * Team creation validation schema (now supports hourly teams)
+ */
+export const teamCreationSchema = Joi.object({
+  name: teamNameSchema,
+  hour: hourSchema,
+  day: daySchema,
+  month: monthSchema.optional(),
+  year: yearSchema.optional(),
+  memberIds: Joi.array()
+    .items(userIdSchema)
+    .optional()
+    .messages({
+      'array.base': 'Member IDs must be an array',
+      'array.items': 'Each member ID must be a positive integer'
+    })
+});
+
+/**
+ * Add member validation schema
+ */
+export const addMemberSchema = Joi.object({
+  userId: userIdSchema
+});

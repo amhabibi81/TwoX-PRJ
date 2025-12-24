@@ -88,6 +88,29 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = !!token;
 
+  // Role helper methods
+  const getUserRole = () => {
+    return user?.role || 'member';
+  };
+
+  const isAdmin = () => {
+    return getUserRole() === 'admin';
+  };
+
+  const isManager = () => {
+    const role = getUserRole();
+    return role === 'manager' || role === 'admin';
+  };
+
+  const hasRole = (requiredRole) => {
+    return getUserRole() === requiredRole;
+  };
+
+  const hasAnyRole = (allowedRoles) => {
+    const userRole = getUserRole();
+    return allowedRoles.includes(userRole);
+  };
+
   const value = {
     user,
     token,
@@ -95,7 +118,13 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     isAuthenticated,
-    loading
+    loading,
+    // Role helpers
+    getUserRole,
+    isAdmin,
+    isManager,
+    hasRole,
+    hasAnyRole
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

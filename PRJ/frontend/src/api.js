@@ -73,4 +73,32 @@ api.interceptors.response.use(
   }
 );
 
+// Admin API methods
+export const adminApi = {
+  getDashboard: (month, year) => api.get('/admin/dashboard', { params: { month, year } }),
+  getTeamParticipation: (month, year) => api.get('/admin/dashboard/participation', { params: { month, year } }),
+  getTeamAverages: (month, year) => api.get('/admin/dashboard/team-averages', { params: { month, year } }),
+  getUserAverages: (month, year) => api.get('/admin/dashboard/user-averages', { params: { month, year } }),
+  getPerformers: (month, year, limit) => api.get('/admin/dashboard/performers', { params: { month, year, limit } }),
+  getMonthComparison: (month, year) => api.get('/admin/dashboard/month-comparison', { params: { month, year } })
+};
+
+// 360-Degree Evaluation API methods
+export const evaluationApi = {
+  // Submit self-evaluation
+  submitSelfEvaluation: (questionId, score) => 
+    api.post('/answers/self', { questionId, score }),
+  
+  // Submit peer evaluation
+  submitPeerEvaluation: (questionId, score, evaluatedUserId) => 
+    api.post('/answers/peer', { questionId, score, evaluatedUserId }),
+  
+  // Submit manager evaluation
+  submitManagerEvaluation: (questionId, score, evaluatedUserId) => 
+    api.post('/answers/manager', { questionId, score, evaluatedUserId }),
+  
+  // Get evaluation status (returns answers with source_type breakdown)
+  getEvaluationStatus: () => api.get('/answers/my')
+};
+
 export default api;

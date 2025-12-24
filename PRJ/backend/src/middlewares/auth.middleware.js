@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config/env.js';
+import * as userRepository from '../database/repositories/user.repository.js';
+import { ROLES, isValidRole } from '../config/roles.config.js';
 
 export default function auth(req, res, next) {
   // Check if Authorization header exists
@@ -33,6 +35,22 @@ export default function auth(req, res, next) {
     
     // Attach user to request (contains id, username, email from JWT payload)
     req.user = decoded;
+    
+    // Backward compatibility: If role is missing in JWT, fetch from database
+    if (!req.user.role || !isValidRole(req.user.role)) {
+      try {
+        const userRecord = userRepository.findUserById(req.user.id);
+        if (userRecord && userRecord.role) {
+          req.user.role = userRecord.role;
+        } else {
+          // Default to member if no role found
+          req.user.role = ROLES.MEMBER;
+        }
+      } catch (error) {
+        // If database fetch fails, default to member
+        req.user.role = ROLES.MEMBER;
+      }
+    }
     
     next();
   } catch (error) {

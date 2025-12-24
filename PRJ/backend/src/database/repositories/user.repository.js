@@ -1,11 +1,12 @@
 import db from '../../config/database.js';
+import { ROLES } from '../../config/roles.config.js';
 
-export const createUser = (username, email, passwordHash) => {
+export const createUser = (username, email, passwordHash, role = ROLES.MEMBER) => {
   try {
     const result = db.prepare(`
-      INSERT INTO users (username, email, password_hash)
-      VALUES (?, ?, ?)
-    `).run(username, email, passwordHash);
+      INSERT INTO users (username, email, password_hash, role)
+      VALUES (?, ?, ?, ?)
+    `).run(username, email, passwordHash, role);
     
     return findUserById(result.lastInsertRowid);
   } catch (error) {
@@ -48,6 +49,10 @@ export const updateUser = (id, updates) => {
     fields.push('password_hash = ?');
     values.push(updates.password_hash);
   }
+  if (updates.role !== undefined) {
+    fields.push('role = ?');
+    values.push(updates.role);
+  }
   
   if (fields.length === 0) {
     return findUserById(id);
@@ -65,5 +70,39 @@ export const updateUser = (id, updates) => {
     }
     throw error;
   }
+};
+
+/**
+ * Get user's role
+ * @param {number} userId - The user ID
+ * @returns {string|null} User's role or null if user not found
+ */
+export const getUserRole = (userId) => {
+  const user = findUserById(userId);
+  return user?.role || null;
+};
+
+/**
+ * Update user's role
+ * @param {number} userId - The user ID
+ * @param {string} role - The new role
+ * @returns {object|null} Updated user object or null if user not found
+ */
+export const updateUserRole = (userId, role) => {
+  return updateUser(userId, { role });
+};
+
+/**
+ * Get all users with a specific role
+ * @param {string} role - The role to filter by
+ * @returns {Array} Array of user objects
+ */
+export const getUsersByRole = (role) => {
+  return db.prepare(`
+    SELECT id, username, email, role, created_at 
+    FROM users 
+    WHERE role = ? 
+    ORDER BY created_at
+  `).all(role);
 };
 

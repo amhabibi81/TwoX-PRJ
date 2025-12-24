@@ -2,6 +2,10 @@ import * as resultRepository from '../database/repositories/result.repository.js
 import * as teamRepository from '../database/repositories/team.repository.js';
 import * as questionRepository from '../database/repositories/question.repository.js';
 import * as answerRepository from '../database/repositories/answer.repository.js';
+import * as teamMemberRepository from '../database/repositories/teamMember.repository.js';
+import * as evaluationScoringService from '../services/evaluationScoring.service.js';
+import db from '../config/database.js';
+import { SOURCE_TYPES } from '../config/evaluation.config.js';
 import logger from '../utils/logger.js';
 
 // Winner selection with tie-breaking logic
@@ -127,17 +131,62 @@ export const getResults = async (req, res) => {
     const questions = questionRepository.getQuestionsByMonth(monthNum, yearNum);
     const questionCount = questions.length;
 
+    // Check if 360-degree evaluations are enabled (check if any answer has source_type)
+    const sampleAnswer = db.prepare('SELECT source_type FROM answers LIMIT 1').get();
+    const has360Evaluations = sampleAnswer && sampleAnswer.source_type !== null;
+
     // Calculate scores for each team
     const teamResults = teams.map(team => {
-      const answers = answerRepository.getAnswersByTeam(team.id);
-      
-      // Filter valid answers (with scores)
-      const validAnswers = answers.filter(a => a.score !== null && a.score !== undefined);
-      
-      // Sum all scores (handle missing answers gracefully - default to 0)
-      const totalScore = validAnswers.reduce((sum, a) => sum + (a.score || 0), 0);
-      const answerCount = validAnswers.length;
-      
+      let totalScore = 0;
+      let answerCount = 0;
+      let weightedScore = 0;
+      let usesWeightedScoring = false;
+
+      if (has360Evaluations && questionCount > 0) {
+        // Use weighted scoring for 360-degree evaluations
+        try {
+          const questionIds = questions.map(q => q.id);
+          let teamWeightedTotal = 0;
+          let questionsWithScores = 0;
+
+          // Calculate weighted score for each team member across all questions
+          const teamMembers = teamMemberRepository.getTeamMembers(team.id);
+          
+          for (const member of teamMembers) {
+            const userScore = evaluationScoringService.calculateTotalWeightedScoreForUser(
+              member.id,
+              team.id,
+              questionIds
+            );
+            
+            if (userScore.totalWeightedScore > 0) {
+              teamWeightedTotal += userScore.totalWeightedScore;
+              questionsWithScores += userScore.questionScores.filter(q => q.weightedScore > 0).length;
+            }
+          }
+
+          weightedScore = teamWeightedTotal;
+          totalScore = weightedScore; // Use weighted score as total
+          answerCount = questionsWithScores;
+          usesWeightedScoring = true;
+        } catch (error) {
+          logger.warn({
+            event: 'weighted.scoring.fallback',
+            teamId: team.id,
+            error: error.message
+          }, 'Falling back to unweighted scoring for team');
+          // Fall through to unweighted calculation
+        }
+      }
+
+      // Fallback to unweighted calculation if weighted scoring failed or not enabled
+      if (!usesWeightedScoring) {
+        const answers = answerRepository.getAnswersByTeam(team.id);
+        const validAnswers = answers.filter(a => a.score !== null && a.score !== undefined);
+        totalScore = validAnswers.reduce((sum, a) => sum + (a.score || 0), 0);
+        answerCount = validAnswers.length;
+      }
+
       // Get earliest submission time for tie-breaking
       const earliestSubmissionTime = answerRepository.getEarliestSubmissionTime(team.id);
       
@@ -147,14 +196,16 @@ export const getResults = async (req, res) => {
       return {
         teamId: team.id,
         teamName: team.name,
-        totalScore,
+        totalScore: parseFloat(totalScore.toFixed(2)),
+        weightedScore: usesWeightedScoring ? parseFloat(weightedScore.toFixed(2)) : null,
         answerCount,
         questionCount,
         completionPercentage: questionCount > 0 
-          ? ((answerCount / questionCount) * 100).toFixed(1)
-          : '0.0',
-        averageScore: avgScore.toFixed(2),
-        earliestSubmissionTime: earliestSubmissionTime
+          ? parseFloat(((answerCount / questionCount) * 100).toFixed(1))
+          : 0.0,
+        averageScore: parseFloat(avgScore.toFixed(2)),
+        earliestSubmissionTime: earliestSubmissionTime,
+        usesWeightedScoring
       };
     });
 

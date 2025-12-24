@@ -5,7 +5,7 @@ import { useError } from '../src/contexts/ErrorContext';
 import api from '../src/api';
 import ProtectedRoute from '../src/components/ProtectedRoute';
 
-function EvaluationForm() {
+function SelfEvaluationForm() {
   const { user } = useAuth();
   const { showError } = useError();
   const navigate = useNavigate();
@@ -48,10 +48,12 @@ function EvaluationForm() {
       const response = await api.get('/answers/my');
       const existingAnswers = response.data.answers || [];
       
-      // Pre-fill answers that already exist
+      // Pre-fill self-evaluation answers only
       const preFilledAnswers = {};
       existingAnswers.forEach(answer => {
-        preFilledAnswers[answer.question_id] = answer.score.toString();
+        if (answer.source_type === 'self' || (!answer.source_type && answer.evaluated_user_id === user?.id)) {
+          preFilledAnswers[answer.question_id] = answer.score.toString();
+        }
       });
       
       setAnswers(prev => ({
@@ -60,19 +62,17 @@ function EvaluationForm() {
       }));
     } catch (error) {
       // Don't show error, just continue without pre-filled answers
-      // This is expected if user hasn't answered any questions yet
     }
   };
 
   const handleScoreChange = (questionId, score) => {
-    if (submitted) return; // Prevent changes after submission
+    if (submitted) return;
     
     setAnswers(prev => ({
       ...prev,
       [questionId]: score
     }));
     
-    // Clear validation error for this question
     setValidationErrors(prev => {
       const newErrors = { ...prev };
       delete newErrors[questionId];
@@ -81,13 +81,11 @@ function EvaluationForm() {
     setError('');
   };
 
-  // Compute form validity
   const isFormValid = questions.length > 0 && questions.every(q => answers[q.id] && answers[q.id] !== '');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Prevent submission if already submitted
     if (submitted) {
       return;
     }
@@ -97,7 +95,7 @@ function EvaluationForm() {
     setSubmitting(true);
     setValidationErrors({});
 
-    // Validate all questions are answered with per-question errors
+    // Validate all questions are answered
     const unansweredQuestions = questions.filter(q => !answers[q.id] || answers[q.id] === '');
     if (unansweredQuestions.length > 0) {
       const errors = {};
@@ -110,48 +108,30 @@ function EvaluationForm() {
       return;
     }
 
-    // Submit all answers (only submit changed/new answers)
+    // Submit all self-evaluations
     try {
-      // Fetch current answers to check which ones need to be submitted
-      const currentAnswersResponse = await api.get('/answers/my');
-      const existingAnswers = currentAnswersResponse.data.answers || [];
-      const existingAnswerMap = {};
-      existingAnswers.forEach(a => {
-        existingAnswerMap[a.question_id] = a.score;
-      });
-
-      // Only submit answers that are new or changed
-      const submitPromises = questions
-        .filter(question => {
-          const newScore = parseInt(answers[question.id], 10);
-          const existingScore = existingAnswerMap[question.id];
-          return existingScore !== newScore;
+      const submitPromises = questions.map(question => 
+        api.post('/answers/self', {
+          questionId: question.id,
+          score: parseInt(answers[question.id], 10)
+        }).catch(error => {
+          if (error.response?.status === 409) {
+            return { success: true };
+          }
+          throw error;
         })
-        .map(question => 
-          api.post('/answers', {
-            questionId: question.id,
-            score: parseInt(answers[question.id], 10)
-          }).catch(error => {
-            // If answer already exists (409), that's okay - it means it was already submitted
-            if (error.response?.status === 409) {
-              return { success: true };
-            }
-            throw error;
-          })
-        );
+      );
 
       await Promise.all(submitPromises);
-      setSuccess('Evaluation submitted successfully!');
+      setSuccess('Self-evaluation submitted successfully!');
       setSubmitted(true);
       setSubmitting(false);
       
-      // Redirect to dashboard after 3 seconds
       setTimeout(() => {
         navigate('/dashboard', { replace: true });
       }, 3000);
     } catch (error) {
-      // Enhanced error handling
-      let errorMessage = 'Failed to submit evaluation. Please try again.';
+      let errorMessage = 'Failed to submit self-evaluation. Please try again.';
       
       if (error.response) {
         const status = error.response.status;
@@ -159,8 +139,6 @@ function EvaluationForm() {
         
         if (status === 409) {
           errorMessage = data.error || 'Some answers have already been submitted. Please refresh the page.';
-        } else if (status === 404) {
-          errorMessage = data.error || 'Question or team not found. Please refresh the page.';
         } else if (status === 400) {
           errorMessage = data.error || 'Invalid data. Please check your answers and try again.';
         } else if (status === 401) {
@@ -171,13 +149,10 @@ function EvaluationForm() {
         } else {
           errorMessage = data.error || errorMessage;
         }
-      } else if (error.request) {
-        errorMessage = 'Network error. Please check your connection and try again.';
       }
       
       setError(errorMessage);
       setSubmitting(false);
-      // Don't set submitted on error - allow retry
     }
   };
 
@@ -193,9 +168,9 @@ function EvaluationForm() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">360-Degree Evaluation</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Self-Evaluation</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Complete all evaluation types for comprehensive feedback
+            Evaluate your own performance (Weight: 20%)
           </p>
         </div>
         <button
@@ -204,38 +179,6 @@ function EvaluationForm() {
         >
           Back to Dashboard
         </button>
-      </div>
-
-      {/* Evaluation Type Navigation */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button
-          onClick={() => navigate('/evaluation/self')}
-          className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-left"
-        >
-          <h3 className="font-semibold text-blue-900">Self-Evaluation</h3>
-          <p className="text-sm text-blue-700 mt-1">Evaluate yourself (20% weight)</p>
-        </button>
-        <button
-          onClick={() => navigate('/evaluation/peer')}
-          className="p-4 bg-green-50 border-2 border-green-200 rounded-lg hover:bg-green-100 transition-colors text-left"
-        >
-          <h3 className="font-semibold text-green-900">Peer Evaluation</h3>
-          <p className="text-sm text-green-700 mt-1">Evaluate teammates (50% weight)</p>
-        </button>
-        <button
-          onClick={() => navigate('/evaluation/manager')}
-          className="p-4 bg-purple-50 border-2 border-purple-200 rounded-lg hover:bg-purple-100 transition-colors text-left"
-        >
-          <h3 className="font-semibold text-purple-900">Manager Evaluation</h3>
-          <p className="text-sm text-purple-700 mt-1">Evaluate team members (30% weight)</p>
-        </button>
-      </div>
-
-      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-        <p className="text-sm text-yellow-800">
-          <strong>Note:</strong> This page maintains backward compatibility with the old peer-only evaluation format.
-          For the full 360-degree evaluation experience, please use the evaluation type buttons above.
-        </p>
       </div>
 
       {error && (
@@ -249,9 +192,7 @@ function EvaluationForm() {
           <span className="text-xl">✓</span>
           <div>
             <strong className="block">{success}</strong>
-            <p className="text-sm mt-1">
-              Redirecting to dashboard...
-            </p>
+            <p className="text-sm mt-1">Redirecting to dashboard...</p>
           </div>
         </div>
       )}
@@ -293,7 +234,7 @@ function EvaluationForm() {
                 )}
                 
                 <p className="text-sm text-gray-600 mb-4">
-                  Rate your team's performance (1 = Poor, 5 = Excellent)
+                  Rate your own performance (1 = Poor, 5 = Excellent)
                 </p>
                 <div className="flex gap-4 flex-wrap">
                   {[1, 2, 3, 4, 5].map(score => (
@@ -353,7 +294,7 @@ function EvaluationForm() {
                   ? 'Submitting...' 
                   : !isFormValid
                     ? 'Answer All Questions'
-                    : 'Submit Evaluation'}
+                    : 'Submit Self-Evaluation'}
             </button>
           </div>
         </form>
@@ -362,10 +303,10 @@ function EvaluationForm() {
   );
 }
 
-export default function Evaluation() {
+export default function SelfEvaluation() {
   return (
     <ProtectedRoute>
-      <EvaluationForm />
+      <SelfEvaluationForm />
     </ProtectedRoute>
   );
 }

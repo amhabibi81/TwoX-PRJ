@@ -1,16 +1,16 @@
 import db from '../../config/database.js';
 
-export const createTeam = (name, month, year) => {
+export const createTeam = (name, month, year, day = null, hour = null) => {
   try {
     const result = db.prepare(`
-      INSERT INTO teams (name, month, year)
-      VALUES (?, ?, ?)
-    `).run(name, month, year);
+      INSERT INTO teams (name, month, year, day, hour)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(name, month, year, day, hour);
     
     return getTeamById(result.lastInsertRowid);
   } catch (error) {
     if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      throw new Error('Team with this name already exists for this month and year');
+      throw new Error('Team with this name already exists for this time period');
     }
     throw error;
   }
@@ -25,6 +25,14 @@ export const getTeamsByMonth = (month, year) => {
     .all(month, year);
 };
 
+export const getTeamsByHour = (hour, day, month, year) => {
+  return db.prepare(`
+    SELECT * FROM teams 
+    WHERE hour = ? AND day = ? AND month = ? AND year = ? 
+    ORDER BY name
+  `).all(hour, day, month, year);
+};
+
 export const getUserTeams = (userId, month, year) => {
   return db.prepare(`
     SELECT t.* FROM teams t
@@ -32,6 +40,15 @@ export const getUserTeams = (userId, month, year) => {
     WHERE tm.user_id = ? AND t.month = ? AND t.year = ?
     ORDER BY t.name
   `).all(userId, month, year);
+};
+
+export const getUserTeamsByHour = (userId, hour, day, month, year) => {
+  return db.prepare(`
+    SELECT t.* FROM teams t
+    INNER JOIN team_members tm ON t.id = tm.team_id
+    WHERE tm.user_id = ? AND t.hour = ? AND t.day = ? AND t.month = ? AND t.year = ?
+    ORDER BY t.name
+  `).all(userId, hour, day, month, year);
 };
 
 export const getAllTeams = () => {
@@ -81,5 +98,28 @@ export const teamsExistForMonth = (month, year) => {
   const result = db.prepare('SELECT COUNT(*) as count FROM teams WHERE month = ? AND year = ?')
     .get(month, year);
   return result.count > 0;
+};
+
+export const teamsExistForHour = (hour, day, month, year) => {
+  const result = db.prepare(`
+    SELECT COUNT(*) as count 
+    FROM teams 
+    WHERE hour = ? AND day = ? AND month = ? AND year = ?
+  `).get(hour, day, month, year);
+  return result.count > 0;
+};
+
+/**
+ * Get teams created within the last N hours
+ */
+export const getTeamsInLastHours = (hours) => {
+  const cutoffTime = new Date();
+  cutoffTime.setHours(cutoffTime.getHours() - hours);
+  
+  return db.prepare(`
+    SELECT * FROM teams 
+    WHERE created_at >= datetime(?)
+    ORDER BY created_at DESC
+  `).all(cutoffTime.toISOString());
 };
 
