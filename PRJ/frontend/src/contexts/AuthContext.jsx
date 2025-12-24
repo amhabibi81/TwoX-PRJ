@@ -57,7 +57,22 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Login failed';
+      // Log error for debugging (development only)
+      if (import.meta.env.DEV) {
+        console.error('Login error:', error.response?.data || error);
+      }
+
+      // Extract error message more carefully, prioritizing validation details if present
+      let errorMessage = 'Login failed';
+      if (error.response?.data) {
+        // If validation error, show first validation detail or main error
+        if (error.response.data.details && Array.isArray(error.response.data.details) && error.response.data.details.length > 0) {
+          errorMessage = error.response.data.details[0].message || error.response.data.error || 'Validation failed';
+        } else {
+          errorMessage = error.response.data.error || 'Login failed';
+        }
+      }
+      
       return { success: false, error: errorMessage };
     }
   };

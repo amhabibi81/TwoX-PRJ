@@ -28,6 +28,7 @@ const validate = (schema, source = 'body') => {
 
       return res.status(400).json({
         error: 'Validation failed',
+        message: errors.length === 1 ? errors[0].message : 'Please check your input',
         details: errors
       });
     }
