@@ -3,7 +3,7 @@ import { handleError, setLoading } from './utils/apiManager';
 import { getErrorMessage, getErrorType } from './utils/errorMessages';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000'
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000'
 });
 
 // Request interceptor: Add token to headers and track loading

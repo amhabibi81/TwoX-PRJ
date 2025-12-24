@@ -17,8 +17,12 @@ const app = express();
 // Security headers middleware (apply early)
 app.use(securityHeaders);
 
-// CORS
-app.use(cors());
+// CORS - Allow frontend URL from environment variable, or default to localhost for development
+const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+app.use(cors({
+  origin: corsOrigin,
+  credentials: true
+}));
 
 // General rate limiting (apply after security headers, before routes)
 app.use(generalRateLimiter);
