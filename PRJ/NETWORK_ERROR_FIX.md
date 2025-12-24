@@ -1,5 +1,7 @@
 # How to Fix Network Error - Simple Guide
 
+> **Need more detailed instructions?** See [RENDER_URL_CONFIGURATION.md](RENDER_URL_CONFIGURATION.md) for step-by-step guide with exact button names and navigation paths.
+
 ## The Problem
 Your website shows "Network Error" because the frontend doesn't know where to find the backend server.
 
