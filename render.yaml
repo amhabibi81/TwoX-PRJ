@@ -5,8 +5,9 @@ services:
     env: node
     region: oregon
     plan: free
-    buildCommand: cd PRJ/backend && npm install
-    startCommand: cd PRJ/backend && npm start
+    rootDir: PRJ/backend
+    buildCommand: npm install
+    startCommand: npm start
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
@@ -34,7 +35,8 @@ services:
   - type: web
     name: team-eval-frontend
     env: static
-    buildCommand: cd PRJ/frontend && npm install && npm run build
+    rootDir: PRJ/frontend
+    buildCommand: npm install && npm run build
     staticPublishPath: PRJ/frontend/dist
     envVars:
       - key: VITE_API_URL
