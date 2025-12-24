@@ -36,7 +36,9 @@ if (process.env.NODE_ENV) {
   }
 }
 
-const databasePath = process.env.DATABASE_PATH.trim();
+// Parse values safely (may be undefined during build phase, but validated if NODE_ENV is set)
+const databasePath = process.env.DATABASE_PATH ? process.env.DATABASE_PATH.trim() : '';
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 0;
 
 // Parse optional ADMIN_EMAILS (comma-separated)
 const adminEmails = process.env.ADMIN_EMAILS
@@ -44,7 +46,7 @@ const adminEmails = process.env.ADMIN_EMAILS
   : [];
 
 export const config = {
-  jwtSecret: process.env.JWT_SECRET.trim(),
+  jwtSecret: process.env.JWT_SECRET ? process.env.JWT_SECRET.trim() : '',
   port,
   databasePath,
   adminEmails,
