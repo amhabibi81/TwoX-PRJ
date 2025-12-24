@@ -2,8 +2,32 @@ import axios from 'axios';
 import { handleError, setLoading } from './utils/apiManager';
 import { getErrorMessage, getErrorType } from './utils/errorMessages';
 
+// Get API base URL
+const getApiBaseURL = () => {
+  return import.meta.env.VITE_API_URL || 'http://localhost:5000';
+};
+
+// Check if API URL is misconfigured in production
+const checkApiConfiguration = () => {
+  const apiUrl = getApiBaseURL();
+  const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  
+  if (isProduction && (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1'))) {
+    console.error(
+      '⚠️ API Configuration Warning: VITE_API_URL is not set or is using localhost.\n' +
+      'The frontend is trying to connect to: ' + apiUrl + '\n' +
+      'Please set VITE_API_URL environment variable in Render dashboard to your backend URL.'
+    );
+  }
+};
+
+// Check configuration on module load (only in browser)
+if (typeof window !== 'undefined') {
+  checkApiConfiguration();
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  baseURL: getApiBaseURL()
 });
 
 // Request interceptor: Add token to headers and track loading

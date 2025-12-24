@@ -57,11 +57,24 @@ export const getErrorType = (error) => {
 };
 
 /**
+ * Check if API URL is misconfigured (using localhost in production)
+ */
+const isApiUrlMisconfigured = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  return isProduction && (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1'));
+};
+
+/**
  * Get user-friendly error message from error object
  */
 export const getErrorMessage = (error) => {
   // Handle network errors
   if (isNetworkError(error)) {
+    // Check if API URL is misconfigured
+    if (isApiUrlMisconfigured()) {
+      return 'API configuration error: Backend URL is not configured. Please set VITE_API_URL environment variable in your deployment settings.';
+    }
     return 'Network error. Please check your connection and try again.';
   }
 
