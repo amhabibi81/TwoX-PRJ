@@ -30,6 +30,11 @@ app.use(generalRateLimiter);
 // Body parser
 app.use(express.json());
 
+// Health check endpoint for Render
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'team-eval-backend' });
+});
+
 app.use('/auth', authRoutes);
 app.use('/teams', teamRoutes);
 app.use('/questions', questionRoutes);

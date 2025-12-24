@@ -14,8 +14,8 @@ async function startServer() {
       setupMonthlyTeamGeneration();
     }
     
-    // Start server
-    app.listen(config.port, () => {
+    // Start server - bind to 0.0.0.0 to accept connections from Render's load balancer
+    app.listen(config.port, '0.0.0.0', () => {
       logger.info({
         event: 'server.start',
         port: config.port,
