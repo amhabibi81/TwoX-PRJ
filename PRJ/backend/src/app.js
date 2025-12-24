@@ -1,8 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 
-import './config/env.js';
-
 import authRoutes from './routes/auth.routes.js';
 import teamRoutes from './routes/team.routes.js';
 import questionRoutes from './routes/question.routes.js';
