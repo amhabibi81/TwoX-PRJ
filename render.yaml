@@ -36,10 +36,8 @@ services:
     name: team-eval-frontend
     env: static
     rootDir: PRJ/frontend
-    buildCommand: npm install && npx vite build
+    buildCommand: npm ci && npx vite build
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
         sync: false
-      - key: NODE_ENV
-        value: production
