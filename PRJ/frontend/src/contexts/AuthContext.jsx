@@ -47,7 +47,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password }, {
+        showError: false,  // Disable automatic error toast
+        showLoading: false  // We handle loading state in Login component
+      });
       const { token: newToken, user: userData } = response.data;
       
       setToken(newToken);
@@ -57,19 +60,30 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      // Log error for debugging (development only)
-      if (import.meta.env.DEV) {
-        console.error('Login error:', error.response?.data || error);
-      }
+      // Always log errors for debugging (even in production)
+      console.error('Login error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        isNetworkError: !error.response
+      });
 
-      // Extract error message more carefully, prioritizing validation details if present
+      // Extract error message more carefully
       let errorMessage = 'Login failed';
       if (error.response?.data) {
-        // If validation error, show first validation detail or main error
         if (error.response.data.details && Array.isArray(error.response.data.details) && error.response.data.details.length > 0) {
           errorMessage = error.response.data.details[0].message || error.response.data.error || 'Validation failed';
         } else {
           errorMessage = error.response.data.error || 'Login failed';
+        }
+      } else if (!error.response) {
+        // Network error
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        if (isProduction && (apiUrl.includes('localhost') || apiUrl.includes('127.0.0.1'))) {
+          errorMessage = 'API configuration error: Backend URL is not configured. Please check your deployment settings.';
+        } else {
+          errorMessage = 'Network error. Please check your connection and try again.';
         }
       }
       
@@ -79,7 +93,10 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (username, email, password) => {
     try {
-      const response = await api.post('/auth/signup', { username, email, password });
+      const response = await api.post('/auth/signup', { username, email, password }, {
+        showError: false,
+        showLoading: false
+      });
       const { token: newToken, user: userData } = response.data;
       
       setToken(newToken);
@@ -89,7 +106,22 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Signup failed';
+      // Always log errors for debugging
+      console.error('Signup error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+
+      let errorMessage = 'Signup failed';
+      if (error.response?.data) {
+        if (error.response.data.details && Array.isArray(error.response.data.details) && error.response.data.details.length > 0) {
+          errorMessage = error.response.data.details[0].message || error.response.data.error || 'Validation failed';
+        } else {
+          errorMessage = error.response.data.error || 'Signup failed';
+        }
+      }
+      
       return { success: false, error: errorMessage };
     }
   };

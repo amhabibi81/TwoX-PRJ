@@ -69,20 +69,28 @@ api.interceptors.response.use(
 
     // Handle 401 errors (unauthorized/expired token) - special handling
     if (error.response?.status === 401) {
-      // Token expired or invalid - clear auth data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Don't clear auth data or redirect for login/signup endpoints
+      // These endpoints legitimately return 401 for invalid credentials
+      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || 
+                             error.config?.url?.includes('/auth/signup');
       
-      // Dispatch custom event to notify auth context
-      window.dispatchEvent(new Event('auth:logout'));
-      
-      // Redirect to login if not already there
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
-        window.location.href = '/login';
+      if (!isAuthEndpoint) {
+        // Token expired or invalid - clear auth data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Dispatch custom event to notify auth context
+        window.dispatchEvent(new Event('auth:logout'));
+        
+        // Redirect to login if not already there
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+          window.location.href = '/login';
+        }
+        
+        // Don't show error toast for 401 - redirect handles it
+        return Promise.reject(error);
       }
-      
-      // Don't show error toast for 401 - redirect handles it
-      return Promise.reject(error);
+      // For auth endpoints, let the error propagate normally
     }
 
     // Handle all other errors - show user-friendly message
