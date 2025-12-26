@@ -8,9 +8,18 @@ import logger from '../src/utils/logger.js';
 /**
  * Create or verify admin user
  * Uses ADMIN_EMAILS and ADMIN_DEFAULT_PASSWORD from environment variables
+ * 
+ * Command line options:
+ *   --reset-password  Reset password for existing admin user
+ *   --force           Force password reset even if user exists
  */
 async function createAdminUser() {
   try {
+    // Parse command line arguments
+    const args = process.argv.slice(2);
+    const resetPassword = args.includes('--reset-password') || args.includes('--force');
+    const force = args.includes('--force');
+
     // Check if ADMIN_EMAILS is configured
     if (!config.adminEmails || config.adminEmails.length === 0) {
       console.error('❌ ADMIN_EMAILS environment variable is not configured.');
@@ -23,6 +32,9 @@ async function createAdminUser() {
     const adminUsername = adminEmail.split('@')[0]; // Use email prefix as username
 
     console.log(`\n🔍 Checking for admin user: ${adminEmail}`);
+    if (resetPassword) {
+      console.log(`   Mode: Password reset enabled`);
+    }
 
     // Check if admin user already exists
     const existingAdmin = userRepository.findUserByEmail(adminEmail);
@@ -33,9 +45,40 @@ async function createAdminUser() {
       console.log(`   Username: ${existingAdmin.username}`);
       console.log(`   Role: ${existingAdmin.role || 'member'}`);
       console.log(`   User ID: ${existingAdmin.id}`);
-      console.log(`\n⚠️  Note: Password is not displayed for security.`);
-      console.log(`   If you need to reset the password, you can update it manually in the database.`);
-      return existingAdmin;
+      
+      if (resetPassword || force) {
+        // Reset password for existing admin user
+        console.log(`\n🔄 Resetting password for admin user...`);
+        
+        // Hash the new password
+        const passwordHash = await bcrypt.hash(adminPassword, 10);
+        
+        // Update user password
+        const updatedUser = userRepository.updateUser(existingAdmin.id, {
+          password_hash: passwordHash
+        });
+        
+        console.log(`\n✅ Password reset successfully!`);
+        console.log(`   Email: ${updatedUser.email}`);
+        console.log(`   Username: ${updatedUser.username}`);
+        console.log(`   User ID: ${updatedUser.id}`);
+        console.log(`\n🔑 New login credentials:`);
+        console.log(`   Email: ${adminEmail}`);
+        console.log(`   Password: ${adminPassword}`);
+        console.log(`\n⚠️  SECURITY WARNING: Please change this password immediately after first login!`);
+        
+        logger.info({
+          event: 'admin.user.password.reset.script',
+          userId: updatedUser.id,
+          email: adminEmail
+        }, `Admin user password reset via script: ${adminEmail}`);
+        
+        return updatedUser;
+      } else {
+        console.log(`\n⚠️  Note: Password is not displayed for security.`);
+        console.log(`   To reset the password, run: npm run create:admin -- --reset-password`);
+        return existingAdmin;
+      }
     }
 
     // Admin user doesn't exist - create it
